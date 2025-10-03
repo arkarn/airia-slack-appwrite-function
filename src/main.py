@@ -29,6 +29,11 @@ def main(context):
         # Don't forget to return a response!
         return context.res.text("Pong")
 
+    if context.req.path == "/echo" and context.req.method == "POST":
+        body = context.req.bodyJson
+        input_str = body.get("input_str", "")
+        return context.res.json({"output": input_str.upper()})
+
     return context.res.json(
         {
             "motto": "Build like a team of hundreds_",
