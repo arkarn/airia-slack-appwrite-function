@@ -30,7 +30,7 @@ def main(context):
         return context.res.text("Pong")
 
     if context.req.path == "/echo" and context.req.method == "POST":
-        body = context.req.bodyJson
+        body = context.req.body_json
         input_str = body.get("input_str", "")
         return context.res.json({"output": input_str.upper()})
 
