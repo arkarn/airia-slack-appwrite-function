@@ -4,6 +4,7 @@ from appwrite.exception import AppwriteException
 import os
 import json
 import requests
+from airia_bot import get_airia_response
 
 # This Appwrite function will be executed every time your function is triggered
 def main(context):
@@ -50,8 +51,8 @@ def main(context):
             channel = event.get("channel")
             thread_ts = event.get("ts")
             
-            # Process text (uppercase for now)
-            response_text = text.upper()
+            # Get response from Airia bot
+            response_text = get_airia_response(text)
             
             # Post to Slack thread
             slack_token = os.environ.get("SLACK_BOT_TOKEN")
