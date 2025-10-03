@@ -4,7 +4,7 @@ from appwrite.exception import AppwriteException
 import os
 import json
 import requests
-from airia_bot import get_airia_response
+from .airia_bot import get_airia_response
 
 # This Appwrite function will be executed every time your function is triggered
 def main(context):
