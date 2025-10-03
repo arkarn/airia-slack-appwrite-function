@@ -18,13 +18,14 @@ def handle_slack_event(body, headers):
     if event.get("type") == "app_mention":
         text = event.get("text", "").replace(f"<@{body.get('authorizations', [{}])[0].get('user_id', '')}>", "").strip()
         channel = event.get("channel")
-        thread_ts = event.get("ts")
+        # Use thread_ts if exists (reply in thread), else ts (new thread)
+        thread_ts = event.get("thread_ts") or event.get("ts")
         slack_token = os.environ.get("SLACK_BOT_TOKEN")
         sla_minutes = int(os.environ.get("SLA_MINUTES", "15"))
         
         if slack_token:
-            # Add clock emoji to indicate waiting for human
-            add_reaction(slack_token, channel, thread_ts, "alarm_clock")
+            # Add clock emoji to the mention message
+            add_reaction(slack_token, channel, event.get("ts"), "alarm_clock")
             
             # Get response from Airia bot (generate now, schedule for later)
             response_text = get_airia_response(text)
@@ -33,8 +34,17 @@ def handle_slack_event(body, headers):
             schedule_message(slack_token, channel, thread_ts, response_text, sla_minutes)
     
     # Handle message event (human replied)
-    if event.get("type") == "message" and event.get("thread_ts") and not event.get("bot_id"):
-        cancel_scheduled_message(event.get("thread_ts"), event.get("channel"))
+    if event.get("type") == "message" and not event.get("subtype"):
+        lookup_thread_ts = event.get("thread_ts") or event.get("ts")
+        channel = event.get("channel")
+        slack_token = os.environ.get("SLACK_BOT_TOKEN")
+        
+        if not event.get("bot_id"):
+            # Human replied - cancel scheduled message
+            cancel_scheduled_message(lookup_thread_ts, channel)
+        elif event.get("thread_ts") and slack_token:
+            # Bot replied (scheduled message posted) - remove alarm clock
+            remove_reaction(slack_token, channel, event.get("thread_ts"), "alarm_clock")
     
     return {"status": "ok"}
 
@@ -76,5 +86,6 @@ def cancel_scheduled_message(thread_ts, channel):
         # Mark as cancelled in DB
         mark_cancelled(doc["$id"])
         
-        # Remove alarm clock emoji
+        # Remove alarm clock, add checkmark (human replied)
         remove_reaction(slack_token, channel, thread_ts, "alarm_clock")
+        add_reaction(slack_token, channel, thread_ts, "white_check_mark")
