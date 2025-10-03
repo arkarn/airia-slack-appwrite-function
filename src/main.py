@@ -36,7 +36,7 @@ def main(context):
         return context.res.json({"output": input_str.upper()})
 
     if context.req.path == "/slack/events" and context.req.method == "POST":
-        result = handle_slack_event(context.req.body_json, context.req.headers)
+        result = handle_slack_event(context.req.body_json, context.req.headers, context)
         return context.res.json(result)
 
     return context.res.json(
