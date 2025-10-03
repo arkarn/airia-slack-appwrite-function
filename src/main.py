@@ -2,9 +2,7 @@ from appwrite.client import Client
 from appwrite.services.users import Users
 from appwrite.exception import AppwriteException
 import os
-import json
-import requests
-from .airia_bot import get_airia_response
+from .slack_handler import handle_slack_event
 
 # This Appwrite function will be executed every time your function is triggered
 def main(context):
@@ -38,30 +36,8 @@ def main(context):
         return context.res.json({"output": input_str.upper()})
 
     if context.req.path == "/slack/events" and context.req.method == "POST":
-        body = context.req.body_json
-        
-        # Handle Slack URL verification challenge
-        if "challenge" in body:
-            return context.res.json({"challenge": body["challenge"]})
-        
-        # Handle app_mention event
-        event = body.get("event", {})
-        if event.get("type") == "app_mention":
-            text = event.get("text", "").replace(f"<@{body.get('authorizations', [{}])[0].get('user_id', '')}>", "").strip()
-            channel = event.get("channel")
-            thread_ts = event.get("ts")
-            
-            # Get response from Airia bot
-            response_text = get_airia_response(text)
-            
-            # Post to Slack thread
-            slack_token = os.environ.get("SLACK_BOT_TOKEN")
-            if slack_token:
-                requests.post("https://slack.com/api/chat.postMessage", 
-                    headers={"Authorization": f"Bearer {slack_token}"},
-                    json={"channel": channel, "thread_ts": thread_ts, "text": response_text})
-        
-        return context.res.json({"status": "ok"})
+        result = handle_slack_event(context.req.body_json, context.req.headers)
+        return context.res.json(result)
 
     return context.res.json(
         {

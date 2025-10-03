@@ -17,5 +17,6 @@ def get_airia_response(user_input):
     }
     
     response = requests.post(url, headers=headers, data=payload)
-    return response.text
+    result = json.loads(response.text)
+    return result.get("result", response.text)
 
